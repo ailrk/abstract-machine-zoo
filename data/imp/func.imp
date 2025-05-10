@@ -1,30 +1,7 @@
-func add(x, y) {
-  print x + y;
-}
-
-func sub(x, y) {
-  print x - y;
-}
-
-func cool(x) {
-  func foo(a) {
-    func baz(c) {
-      print c;
-    }
-    print a;
-  }
-
-  func bar(b) {
-    print b;
-  }
-
-  add(1, 2);
-  foo(88);
-  print x;
-}
+func add(x, y) { print x + y; }
+func sub(x, y) { print x - y; }
 
 {
   add(10, 20);
   sub(20, 10);
-  cool(77);
 }
