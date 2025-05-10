@@ -1,0 +1,126 @@
+module IMP where
+
+import Data.Void
+import Text.Megaparsec
+import Text.Megaparsec.Char
+import Control.Monad.Combinators.Expr
+import qualified Text.Megaparsec.Char.Lexer as L
+import Prelude hiding (LT, GT)
+import System.IO (readFile')
+
+data OP
+  = Add
+  | Sub
+  | Mul
+  | Div
+  | GT
+  | GTE
+  | LT
+  | LTE
+  | NOT
+  deriving (Eq, Show)
+
+
+data Expr
+  = Var String
+  | IntLit Int
+  | BinOP OP Expr Expr
+  | UNOP OP Expr
+  deriving (Eq, Show)
+
+
+data Stmt
+  = Assign String Expr
+  | Seq [Stmt]
+  | If Expr Stmt Stmt
+  | While Expr Stmt
+  | Call String [Expr]
+  | FuncDef String [String] Stmt
+  | Print Expr
+  deriving (Eq, Show)
+
+
+type Parser = Parsec Void String
+
+-- Lexer
+sc :: Parser ()
+sc = L.space space1 empty empty
+
+lexeme :: Parser a -> Parser a
+lexeme = L.lexeme sc
+
+symbol :: String -> Parser String
+symbol = L.symbol sc
+
+parens :: Parser a -> Parser a
+parens = between (symbol "(") (symbol ")")
+
+braces :: Parser a -> Parser a
+braces = between (symbol "{") (symbol "}")
+
+semi :: Parser String
+semi = symbol ";"
+
+identifier :: Parser String
+identifier = lexeme ((:) <$> letterChar <*> many alphaNumChar)
+
+integer :: Parser Int
+integer = lexeme L.decimal
+
+-- Operator table (precedence-aware)
+expr :: Parser Expr
+expr = makeExprParser term table
+  where
+    term =
+          parens expr
+      <|> UNOP NOT <$ symbol "!" <*> term
+      <|> IntLit <$> integer
+      <|> Var <$> identifier
+
+    table =
+      [ [ Prefix (UNOP NOT <$ symbol "!") ]
+      , [ InfixL (BinOP Mul <$ symbol "*")
+        , InfixL (BinOP Div <$ symbol "/") ]
+      , [ InfixL (BinOP Add <$ symbol "+")
+        , InfixL (BinOP Sub <$ symbol "-") ]
+      , [ InfixN (BinOP GT <$ symbol ">")
+        , InfixN (BinOP GTE <$ symbol ">=")
+        , InfixN (BinOP LT <$ symbol "<")
+        , InfixN (BinOP LTE <$ symbol "<=") ]
+      ]
+
+-- Statement parser
+stmt :: Parser Stmt
+stmt = choice
+  [ Print <$ symbol "print" <*> expr <* semi
+  , While <$ symbol "while" <*> expr <*> stmt
+  , do
+      e <- symbol "if" >> expr
+      s1 <- stmt
+      s2 <- symbol "else" *> stmt
+      pure $ If e s1 s2
+  , block
+  , try $ Assign <$> identifier <* symbol ":=" <*> expr <* semi
+  , try $ do
+      _ <- symbol "func"
+      name <- identifier
+      params <- parens (identifier `sepBy` symbol ",")
+      body <- block
+      pure $ FuncDef name params body
+  , Call <$> identifier <*> parens (expr `sepBy` symbol ",") <* semi
+  ]
+
+block :: Parser Stmt
+block = Seq <$> braces (many stmt)
+
+program :: Parser Stmt
+program = between sc eof (Seq <$> many stmt)
+
+
+run :: FilePath -> (Stmt -> IO ()) -> IO ()
+run path eval = do
+  putStrLn (">" ++ path)
+  code <- readFile' path
+  case parse program "" code of
+    Right s -> eval s
+    Left e -> putStrLn $ errorBundlePretty e
