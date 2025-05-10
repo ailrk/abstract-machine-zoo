@@ -12,6 +12,7 @@ data Mode
   = Normal
   | Debug
 
+
 debug :: Machine.Program -> IO ()
 debug program = do
   let (Machine.Program (instrs, labels)) = program

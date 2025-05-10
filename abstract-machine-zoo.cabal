@@ -52,6 +52,15 @@ executable graph-reduction
   other-modules:
     Machine
 
+
+executable krivine
+  import:            shared-settings, shared-executable-settings
+  main-is:           Main.hs
+  hs-source-dirs:    Krivine
+  other-modules:
+    Machine
+
+
 executable turing-machine
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs

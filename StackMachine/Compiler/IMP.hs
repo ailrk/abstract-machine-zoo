@@ -88,7 +88,7 @@ compileExpr expr =
       opProg <- compileOp op
       combine [aProg, bProg, opProg]
 
-    IMP.UNOP op a -> do
+    IMP.UnOP op a -> do
       aProg <- compileExpr a
       opProg <- compileOp op
       combine [aProg, opProg]
@@ -101,11 +101,12 @@ compileOp op =
     IMP.Sub -> emit SUB
     IMP.Mul -> emit MUL
     IMP.Div -> emit DIV
-    IMP.GT -> emit GT
-    IMP.GTE -> emit GTE
-    IMP.LT -> emit LT
-    IMP.LTE -> emit LTE
-    IMP.NOT -> emit NOT
+    IMP.Gt -> emit GT
+    IMP.Gte -> emit GTE
+    IMP.Lt -> emit LT
+    IMP.Lte -> emit LTE
+    IMP.Not -> emit NOT
+    IMP.Eqv -> emit EQV
 
 
 addLabel :: Label -> Program

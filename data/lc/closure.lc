@@ -1,0 +1,3 @@
+let makeAdder = fn x y => x + y in
+let add5 = makeAdder 5 in
+add5 3

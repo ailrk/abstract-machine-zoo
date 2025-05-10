@@ -13,11 +13,12 @@ data OP
   | Sub
   | Mul
   | Div
-  | GT
-  | GTE
-  | LT
-  | LTE
-  | NOT
+  | Gt
+  | Gte
+  | Lt
+  | Lte
+  | Not
+  | Eqv
   deriving (Eq, Show)
 
 
@@ -25,7 +26,7 @@ data Expr
   = Var String
   | IntLit Int
   | BinOP OP Expr Expr
-  | UNOP OP Expr
+  | UnOP OP Expr
   deriving (Eq, Show)
 
 
@@ -42,52 +43,61 @@ data Stmt
 
 type Parser = Parsec Void String
 
--- Lexer
+
 sc :: Parser ()
 sc = L.space space1 empty empty
+
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
+
 symbol :: String -> Parser String
 symbol = L.symbol sc
+
 
 parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
+
 braces :: Parser a -> Parser a
 braces = between (symbol "{") (symbol "}")
+
 
 semi :: Parser String
 semi = symbol ";"
 
+
 identifier :: Parser String
 identifier = lexeme ((:) <$> letterChar <*> many alphaNumChar)
+
 
 integer :: Parser Int
 integer = lexeme L.decimal
 
--- Operator table (precedence-aware)
+
 expr :: Parser Expr
 expr = makeExprParser term table
   where
     term =
           parens expr
-      <|> UNOP NOT <$ symbol "!" <*> term
+      <|> UnOP Not <$ symbol "!" <*> term
       <|> IntLit <$> integer
       <|> Var <$> identifier
 
     table =
-      [ [ Prefix (UNOP NOT <$ symbol "!") ]
+      [ [ Prefix (UnOP Not <$ symbol "!") ]
       , [ InfixL (BinOP Mul <$ symbol "*")
         , InfixL (BinOP Div <$ symbol "/") ]
       , [ InfixL (BinOP Add <$ symbol "+")
         , InfixL (BinOP Sub <$ symbol "-") ]
-      , [ InfixN (BinOP GT <$ symbol ">")
-        , InfixN (BinOP GTE <$ symbol ">=")
-        , InfixN (BinOP LT <$ symbol "<")
-        , InfixN (BinOP LTE <$ symbol "<=") ]
+      , [ InfixN (BinOP Gt <$ symbol "==")
+        , InfixN (BinOP Gt <$ symbol ">")
+        , InfixN (BinOP Gte <$ symbol ">=")
+        , InfixN (BinOP Lt <$ symbol "<")
+        , InfixN (BinOP Lte <$ symbol "<=") ]
       ]
+
 
 -- Statement parser
 stmt :: Parser Stmt
@@ -110,8 +120,10 @@ stmt = choice
   , Call <$> identifier <*> parens (expr `sepBy` symbol ",") <* semi
   ]
 
+
 block :: Parser Stmt
 block = Seq <$> braces (many stmt)
+
 
 program :: Parser Stmt
 program = between sc eof (Seq <$> many stmt)
