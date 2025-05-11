@@ -4,6 +4,7 @@ import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Control.Monad.Combinators.Expr
+import Data.Text (Text, pack)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Prelude hiding (LT, GT)
 import System.IO (readFile')
@@ -23,7 +24,7 @@ data OP
 
 
 data Expr
-  = Var String
+  = Var Text
   | IntLit Int
   | BinOP OP Expr Expr
   | UnOP OP Expr
@@ -31,12 +32,12 @@ data Expr
 
 
 data Stmt
-  = Assign String Expr
+  = Assign Text Expr
   | Seq [Stmt]
   | If Expr Stmt Stmt
   | While Expr Stmt
-  | Call String [Expr]
-  | FuncDef String [String] Stmt
+  | Call Text [Expr]
+  | FuncDef Text [Text] Stmt
   | Print Expr
   deriving (Eq, Show)
 
@@ -52,8 +53,8 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 
-symbol :: String -> Parser String
-symbol = L.symbol sc
+symbol :: String -> Parser Text
+symbol s = pack <$> L.symbol sc s
 
 
 parens :: Parser a -> Parser a
@@ -64,12 +65,12 @@ braces :: Parser a -> Parser a
 braces = between (symbol "{") (symbol "}")
 
 
-semi :: Parser String
+semi :: Parser Text
 semi = symbol ";"
 
 
-identifier :: Parser String
-identifier = lexeme ((:) <$> letterChar <*> many alphaNumChar)
+identifier :: Parser Text
+identifier = pack <$> lexeme ((:) <$> letterChar <*> many alphaNumChar)
 
 
 integer :: Parser Int

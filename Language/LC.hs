@@ -1,6 +1,7 @@
 module LC where
 
 import Data.Void
+import Data.Text (Text, pack, unpack)
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -23,17 +24,17 @@ data OP
 
 
 data Pattern
-  = PVar String
+  = PVar Text
   | PInt Int
   deriving (Eq, Show)
 
 
 data Expr
-  = Var String
-  | Lam [String] Expr
+  = Var Text
+  | Lam [Text] Expr
   | App Expr [Expr]
-  | Let String Expr Expr
-  | LetRec String Expr Expr
+  | Let Text Expr Expr
+  | LetRec Text Expr Expr
   | If Expr Expr Expr
   | IntLit Int
   | BinOp OP Expr Expr
@@ -54,19 +55,19 @@ lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
 
 
-symbol :: String -> Parser String
-symbol = L.symbol sc
+symbol :: String -> Parser Text
+symbol s = pack <$> L.symbol sc s
 
 
 parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
 
-identifier :: Parser String
-identifier = lexeme ((:) <$> letterChar <*> many alphaNumChar)
+identifier :: Parser Text
+identifier = pack <$> lexeme ((:) <$> letterChar <*> many alphaNumChar)
 
 
-reserved :: [String]
+reserved :: [Text]
 reserved = ["let", "rec", "in", "match", "with", "if", "then", "else"]
 
 
@@ -129,7 +130,7 @@ pFactor = choice
   ]
   where
     checkReserved s
-      | s `elem` reserved = fail $ "reserved word: " ++ s
+      | s `elem` reserved = fail $ "reserved word: " ++ unpack s
       | otherwise = return s
 
 

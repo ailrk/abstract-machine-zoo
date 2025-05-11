@@ -2,6 +2,7 @@
 module Machine where
 
 import Control.Monad.State
+import Data.Text (Text, unpack)
 import Prelude hiding (LT, GT)
 
 
@@ -17,9 +18,9 @@ type CallStack = [(Int, Env)]
 type Addr = Int
 type IP = Addr
 type StackM = StateT Machine IO ()
-type Env = [(String, Int)]
+type Env = [(Text, Int)]
 type Stack = [Int]
-type Id = String
+type Id = Text
 type Label = (Id, Addr)
 newtype Program = Program ([Instr], [Label]) deriving (Show)
 
@@ -78,7 +79,7 @@ exec labels instr =
       let lookupEnv env =
             case lookup i env of
               Just val -> put $ s { _stack = val:_stack s }
-              Nothing -> panic $ "Variable " ++ i ++ " not found"
+              Nothing -> panic $ "Variable " ++ unpack i ++ " not found"
       lookupEnv (_env s)
     GT -> binOp (\x y -> if x > y then 1 else 0)
     GTE -> binOp (\x y -> if x >= y then 1 else 0)
