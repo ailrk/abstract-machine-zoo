@@ -189,10 +189,10 @@ program :: Parser Expr
 program = between sc eof pExpr
 
 
-run :: FilePath -> (Expr -> IO ()) -> IO ()
+run :: FilePath -> (Expr -> String -> IO ()) -> IO ()
 run path eval = do
-  putStrLn (">" ++ path)
+  putStrLn ("\x1b[32;1m>"++ path ++ "\x1b[0m")
   code <- readFile' path
   case parse program "" code of
-    Right s -> eval s
+    Right s -> eval s code
     Left e -> putStrLn $ errorBundlePretty e

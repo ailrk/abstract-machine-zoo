@@ -132,10 +132,10 @@ program :: Parser Stmt
 program = between sc eof (Seq <$> many stmt)
 
 
-run :: FilePath -> (Stmt -> IO ()) -> IO ()
+run :: FilePath -> (Stmt -> String -> IO ()) -> IO ()
 run path eval = do
-  putStrLn (">" ++ path)
+  putStrLn ("\x1b[32;1m>"++ path ++ "\x1b[0m")
   code <- readFile' path
   case parse program "" code of
-    Right s -> eval s
+    Right s -> eval s code
     Left e -> putStrLn $ errorBundlePretty e
