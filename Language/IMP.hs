@@ -20,6 +20,7 @@ data OP
   | Lte
   | Not
   | Eqv
+  | Neq
   deriving (Eq, Show)
 
 
@@ -92,7 +93,8 @@ expr = makeExprParser term table
         , InfixL (BinOP Div <$ symbol "/") ]
       , [ InfixL (BinOP Add <$ symbol "+")
         , InfixL (BinOP Sub <$ symbol "-") ]
-      , [ InfixN (BinOP Gt <$ symbol "==")
+      , [ InfixN (BinOP Eqv <$ symbol "==")
+        , InfixN (BinOP Neq <$ symbol "!=")
         , InfixN (BinOP Gt <$ symbol ">")
         , InfixN (BinOP Gte <$ symbol ">=")
         , InfixN (BinOP Lt <$ symbol "<")

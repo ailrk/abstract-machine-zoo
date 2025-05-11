@@ -107,6 +107,7 @@ compileOp op =
     IMP.Lte -> emit LTE
     IMP.Not -> emit NOT
     IMP.Eqv -> emit EQV
+    IMP.Neq -> emit NEQ
 
 
 addLabel :: Label -> Program

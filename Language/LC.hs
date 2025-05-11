@@ -14,18 +14,18 @@ data OP
   | Sub
   | Mul
   | Div
-  | GT
-  | GTE
-  | LT
-  | LTE
-  | NOT
+  | Gt
+  | Gte
+  | Lt
+  | Lte
+  | Not
   | Eqv
+  | Neq
   deriving (Eq, Show)
 
-
-data Pattern
-  = PVar Text
-  | PInt Int
+data Lit
+  = IntLit Int
+  | BoolLit Bool
   deriving (Eq, Show)
 
 
@@ -36,10 +36,9 @@ data Expr
   | Let Text Expr Expr
   | LetRec Text Expr Expr
   | If Expr Expr Expr
-  | IntLit Int
-  | BinOp OP Expr Expr
-  | UnOp OP Expr Expr
-  | Match Expr [(Pattern, Expr)]
+  | Lit Lit
+  | BinOP OP Expr Expr
+  | UnOP OP Expr
   deriving (Eq, Show)
 
 
@@ -68,7 +67,7 @@ identifier = pack <$> lexeme ((:) <$> letterChar <*> many alphaNumChar)
 
 
 reserved :: [Text]
-reserved = ["let", "rec", "in", "match", "with", "if", "then", "else"]
+reserved = ["let", "rec", "in", "match", "with", "if", "then", "else", "true", "false"]
 
 
 reservedWord :: String -> Parser ()
@@ -86,20 +85,26 @@ pExpr = makeExprParser pTerm operatorTable
 
 operatorTable :: [[Operator Parser Expr]]
 operatorTable =
-  [ [ InfixL (BinOp Mul <$ symbol "*")
-    , InfixL (BinOp Div <$ symbol "/") ]
-  , [ InfixL (BinOp Add <$ symbol "+")
-    , InfixL (BinOp Sub <$ symbol "-") ]
-  , [ InfixL (BinOp Eqv <$ symbol "==") ]
+  [ [ InfixL (BinOP Mul <$ symbol "*")
+    , InfixL (BinOP Div <$ symbol "/") ]
+  , [ InfixL (BinOP Add <$ symbol "+")
+    , InfixL (BinOP Sub <$ symbol "-") ]
+  , [ InfixL (BinOP Eqv <$ symbol "==")
+    , InfixL (BinOP Neq <$ symbol "!=")
+    , InfixN (BinOP Gt <$ symbol ">")
+    , InfixN (BinOP Gte <$ symbol ">=")
+    , InfixN (BinOP Lt <$ symbol "<")
+    , InfixN (BinOP Lte <$ symbol "<=")
+    ]
   ]
 
 
 pTerm :: Parser Expr
 pTerm = choice
-  [ try pLet
+  [ UnOP Not <$ symbol "!" <*> pTerm
+  , try pLet
   , pLetRec
   , pIf
-  , pMatch
   , pLam
   , try pApp
   , pFactor
@@ -122,9 +127,21 @@ pApp = do
   return $ App f args
 
 
+pLit :: Parser Lit
+pLit = choice
+  [ IntLit <$> integer
+  , BoolLit <$> do
+      bool <- choice [symbol "true", symbol "false"]
+      case bool of
+        "true" -> pure True
+        "false" -> pure False
+        _ -> fail "invalid boolean literal"
+  ]
+
+
 pFactor :: Parser Expr
 pFactor = choice
-  [ IntLit <$> integer
+  [ try $ Lit <$> pLit
   , Var <$> try (identifier >>= checkReserved)
   , parens pExpr
   ]
@@ -166,28 +183,6 @@ pIf = do
   reservedWord "else"
   fl <- pExpr
   return $ If cond tr fl
-
-
-pMatch :: Parser Expr
-pMatch = do
-  reservedWord "match"
-  expr <- pExpr
-  reservedWord "with"
-  alts <- some pCaseAlt
-  return $ Match expr alts
-
-
-pCaseAlt :: Parser (Pattern, Expr)
-pCaseAlt = do
-  _ <- symbol "|"
-  pat <- pPattern
-  _ <- symbol "->"
-  body <- pExpr
-  return (pat, body)
-
-
-pPattern :: Parser Pattern
-pPattern = (PInt <$> integer) <|> (PVar <$> identifier)
 
 
 program :: Parser Expr

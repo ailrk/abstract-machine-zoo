@@ -1,3 +1,124 @@
 module Compiler.LC where
 
+import Data.Text (Text)
+import qualified LC
+import Combinator
+import Data.List ((\\))
+import Prelude hiding (GT, LT)
 
+
+data Core
+  = Var Text
+  | Abs Text Core
+  | App Core Core
+  -- builtins
+  | IntLit Int
+  | Op LC.OP -- All operators are curried
+  deriving (Eq, Show)
+
+
+freeVars :: Core -> [Text]
+freeVars c =
+  case c of
+    Var x -> [x]
+    Abs x expr ->
+      let fvs = freeVars expr
+       in fvs \\ [x]
+    App x y ->
+      freeVars x ++ freeVars y
+    Op _ -> []
+    IntLit _ -> []
+
+
+scottBool :: Bool -> Core
+scottBool True = Abs "x" (Abs "y" (Var "y"))
+scottBool False = Abs "x" (Abs "y" (Var "x"))
+
+
+desugar :: LC.Expr -> Core
+desugar expr =
+  case expr of
+    LC.Var val -> Var val
+    LC.Lam args body -> foldr (\a b -> Abs a b) (desugar body) (reverse args)
+    LC.App f params -> foldr (\a b -> App b (desugar a)) (desugar f) params
+    LC.Let name val body -> App (Abs name (desugar body)) (desugar val)
+    LC.LetRec name val body ->
+      App
+        (Abs name (desugar body))
+        (App (Var "Y") (Abs name (desugar val)))
+    LC.If cond t e -> do
+      let cond' = desugar cond -- scott
+      let t' = desugar t
+      let e' = desugar e
+      App (App cond' t') e'
+    LC.Lit lit ->
+      case lit of
+        LC.IntLit n -> IntLit n
+        LC.BoolLit b -> scottBool b
+    LC.BinOP op l r -> App (App (Op op) (desugar l)) (desugar r)
+    LC.UnOP op a -> App (Op op) (desugar a)
+
+
+operator :: LC.OP -> Combinator
+operator o =
+  case o of
+    LC.Add -> ADD
+    LC.Sub -> SUB
+    LC.Mul -> MUL
+    LC.Div -> DIV
+    LC.Gt -> GT
+    LC.Gte -> GTE
+    LC.Lt -> LT
+    LC.Lte -> LTE
+    LC.Eqv -> EQV
+    LC.Neq -> NEQ
+    LC.Not -> NOT
+
+
+-- Notation: [x]N is a lambda term extentionally equal to \x.M
+-- Bracket abstraction:
+-- [x]x   = I
+-- [x]M   = K M  -- if x not free in M
+-- [x]M N = S [x]M [x]N
+bracket :: Core -> Core
+bracket core =
+  case core of
+    Var _ -> elim core
+    Abs {} -> elim core
+    App a b -> elim a `App` elim b
+    IntLit _ -> core
+    Op _ -> core
+  where
+    elim c =
+      case c of
+        Var x -> Var x
+        Abs x (Var y) | x == y -> Var "I"
+        Abs _ (IntLit n) -> Var "K" `App` IntLit n
+        Abs _ (Op op) -> Var "K" `App` Op op
+        Abs x expr | not (x `elem` freeVars expr) ->
+          Var "K" `App` bracket expr
+        Abs x (Abs y body) ->
+          bracket (Abs x (bracket (Abs y body)))
+        Abs x (App y z) ->
+          Var "S"
+            `App` bracket (Abs x y)
+            `App` bracket (Abs x z)
+        _ -> c
+
+
+
+compile :: LC.Expr -> Comb
+compile expr = compile0 (desugar expr)
+
+
+compile0 :: Core -> Comb
+compile0 core =
+  case bracket core of
+    Var n ->
+      case Combinator.fromString n of
+        Just comb -> CComb comb
+        _ -> error "unexpected free variable"
+    Abs {} -> error "unexpected lambda"
+    App x y -> CApp (compile0 x) (compile0 y)
+    IntLit n -> CIntLit n
+    Op op -> CComb (operator op)

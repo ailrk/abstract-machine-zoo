@@ -59,6 +59,7 @@ toGraph c =
       gnew $ lref :@ rref
     CComb comb -> gnew $ Comb comb
     CIntLit n -> gnew $ IntLit n
+    CTemp _ -> error "impossible"
 
 
 -- collect left most spines
@@ -78,8 +79,10 @@ step ref = do
   Spine (n:rest) <- spine ref
   redex <- gread n
   case redex of
+    IntLit _ | not . null $ rest -> error "Literal can't be at the lhs"
     Comb k -> reduce k (Spine rest)
     _ -> pure ()
+
 
 
 -- reduce to normal form
@@ -93,8 +96,8 @@ normal ref = do
 
 
 reduce :: Combinator -> Spine s -> ST s ()
-reduce k (Spine stack) = do
-  case (k, stack) of
+reduce comb (Spine stack) = do
+  case (comb, stack) of
     (S, r1:r2:r3:_) -> do
       (_ :@ x) <- gread r1
       (_ :@ y) <- gread r2
@@ -105,9 +108,9 @@ reduce k (Spine stack) = do
       (_ :@ x) <- gread r
       gread x >>= gwrite r
     (K, r1:r2:_) -> do
-      (_ :@ _) <- gread r1
-      (_ :@ y) <- gread r2
-      gread y >>= gwrite r2
+      (_ :@ x) <- gread r1
+      (_ :@ _) <- gread r2
+      gread x >>= gwrite r2
     (B, r1:r2:r3:_) -> do
       (_ :@ x) <- gread r1
       (_ :@ y) <- gread r2
@@ -210,14 +213,46 @@ reduce k (Spine stack) = do
     (SUB, r1:r2:_) -> binop (-) r1 r2
     (MUL, r1:r2:_) -> binop (*) r1 r2
     (DIV, r1:r2:_) -> binop div r1 r2
-    (GT, r1:r2:_) -> binop (\a b -> if a > b then 1 else 0) r1 r2
-    (GTE, r1:r2:_) -> binop (\a b -> if a >= b then 1 else 0) r1 r2
-    (LT, r1:r2:_) -> binop (\a b -> if a < b then 1 else 0) r1 r2
-    (LTE, r1:r2:_) -> binop (\a b -> if a <= b then 1 else 0) r1 r2
-    (EQV, r1:r2:_) -> binop (\a b -> if a == b then 1 else 0) r1 r2
-    (NOT, r1:_) -> unop (\a -> if a > 0 then 0 else 1) r1
-    _ -> do
-      error ("invalid graph, " <> show k)
+    (GT, r1:r2:_) -> cmp (>) r1 r2
+    (GTE, r1:r2:_) -> cmp (>=) r1 r2
+    (LT, r1:r2:_) -> cmp (<) r1 r2
+    (LTE, r1:r2:_) -> cmp (<=) r1 r2
+    (EQV, r1:r2:_) -> cmp (==) r1 r2
+    (NEQ, r1:r2:_) -> cmp (/=) r1 r2
+    (NOT, r1:_) -> not' r1
+    _ -> error ("invalid graph, " <> show comb)
+
+
+cmp :: (Int -> Int -> Bool) -> GRef s -> GRef s -> ST s ()
+cmp op r1 r2 = do
+  (_ :@ x) <- gread r1
+  (_ :@ y) <- gread r2
+  IntLit x' <- normal x >>= gread
+  IntLit y' <- normal y >>= gread
+  bool <- case op x' y' of
+            True -> toGraph $ CComb K
+            False -> toGraph $ CComb K `CApp` CComb I
+  gread bool >>= gwrite r2
+
+
+not' :: GRef s -> ST s ()
+not' r1 = do
+  (_ :@ x) <- gread r1
+  b <- gread x
+  case b of
+    Comb K -> do
+      true <- liftA2 (:@) (gnew (Comb K)) (gnew (Comb I))
+      gwrite r1 true
+    l :@ r -> do
+      k <- gread l
+      i <- gread r
+      case (k, i) of
+        (Comb K, Comb I) -> do
+          gwrite r1 (Comb K)
+        _ -> invalid
+    _ -> invalid
+  where
+    invalid = error "Invalid scott boolean"
 
 
 binop :: (Int -> Int -> Int) -> GRef s -> GRef s -> ST s ()
@@ -227,10 +262,3 @@ binop op r1 r2 = do
   IntLit x' <- normal x >>= gread
   IntLit y' <- normal y >>= gread
   gwrite r2 (IntLit $ op x' y')
-
-
-unop :: (Int -> Int) -> GRef s -> ST s ()
-unop op r1 = do
-  (_ :@ x) <- gread r1
-  IntLit x' <- normal x >>= gread
-  gwrite r1 (IntLit $ op x')

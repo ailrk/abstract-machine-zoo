@@ -42,6 +42,7 @@ data Instr
   | LTE
   | NOT
   | EQV
+  | NEQ
   | STORE Id
   | LOAD Id
   | JUMP Int -- relative jump
@@ -86,6 +87,7 @@ exec labels instr =
     LT -> binOp (\x y -> if x < y then 1 else 0)
     LTE -> binOp (\x y -> if x <= y then 1 else 0)
     EQV -> binOp (\x y -> if x == y then 1 else 0)
+    NEQ -> binOp (\x y -> if x /= y then 1 else 0)
     NOT -> unary (\x -> if x > 0 then 0 else 1)
     JUMP idx -> modify' (\s -> s { _ip = _ip s + idx})
     JZ idx -> do
