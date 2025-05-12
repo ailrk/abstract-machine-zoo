@@ -1,0 +1,17 @@
+let rec fact =
+  fn n =>
+    if n == 0
+      then do {
+        PRINT n;
+        PURE 1
+      }
+      else do {
+        PRINT n;
+        m <- fact (n - 1);
+        PURE (n * m)
+      }
+in
+  do {
+    result <- fact 20;
+    PRINT result
+  }

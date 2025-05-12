@@ -61,7 +61,7 @@ replace (k, v) xs = (k, v):filter ((/= k) . fst) xs
 exec :: [Label] -> Instr -> StackM
 exec labels instr =
   case instr of
-    (PUSH n) -> do
+    PUSH n -> do
       modify' (\s -> s { _stack = n : _stack s })
     ADD -> binOp (+)
     SUB -> binOp (-)

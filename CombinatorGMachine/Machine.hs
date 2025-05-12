@@ -189,6 +189,15 @@ reduce comb (Spine stack) = do
     (EQV, r1:r2:_) -> cmp (==) r1 r2
     (NEQ, r1:r2:_) -> cmp (/=) r1 r2
     (NOT, r1:_) -> not' r1
+    (NIL, r1:_) -> do
+      (self :@ _) <- gread r1
+      gwrite self (Comb K)
+    (CONS, r1:_:_:_:_) -> do
+      (self :@ _) <- gread r1
+      gwrite self (Comb O)
+    (NULL, r1:_) -> undefined
+    (HEAD, r1:_) -> undefined
+    (TAIL, r1:_) -> undefined
     (PURE, r1:_) -> do
       (_ :@ x) <- gread r1
       x' <- nf x
@@ -212,7 +221,7 @@ reduce comb (Spine stack) = do
       gwrite r1 $
         Action do
           putStrLn str
-          pure (Comb I)
+          pure (IntLit 0)
     (READ, r1:_) -> do
       gwrite r1 $
         Action do
@@ -221,6 +230,7 @@ reduce comb (Spine stack) = do
           case line of
             (c:_) -> pure $ IntLit $ ord c
             [] -> pure $ IntLit $ ord '\n'
+    (ERROR, _) -> error "panic"
     _ -> error ("invalid graph, " <> show comb)
 
 

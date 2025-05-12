@@ -5,6 +5,8 @@ import qualified LC
 import Combinator
 import Data.List ((\\))
 import Prelude hiding (GT, LT)
+import Data.Function ((&))
+import Debug.Trace
 
 
 data Core
@@ -72,6 +74,43 @@ desugar expr =
              LC.Action action -> do
                desugar action
              _ -> error "last statement in do must be an exprssion"
+    LC.List elems -> do -- scott
+      let cons =
+            Abs "x"
+              (Abs "xs"
+                (Abs "nil"
+                  (Abs "cons"
+                    (App (App (Var "cons") (Var "x")) (Var "xs")))))
+      let nil = Abs "nil" (Abs "cons" (Var "nil"))
+      elems
+        & fmap desugar
+        & foldr (\e es -> App (App cons e) es) nil
+
+
+-- To super combinators
+rewrite :: Core -> Core
+rewrite core =
+  case core of
+    Var "I" `App` n@(IntLit _) -> n
+    Var "I" `App` n@(Op _) -> n
+    Var "S" `App` (Var "K" `App` x) `App` (Var "K" `App` y) -> Var "K" `App` (x `App` y)
+    Var "S" `App` (Var "K" `App` x) `App` y -> Var "B" `App` x `App` y
+    (Var "S" `App` x) `App` (Var "K" `App` y) -> Var "C" `App` x `App` y
+    Var "B" `App` x `App` Var "I" -> x
+    Var "B" `App` Var "I" `App` x -> x
+    x `App` y -> rewrite x `App` rewrite y
+    _ -> core
+
+
+opt :: Core -> Core
+opt core =
+  if optimized == core
+     then optimized
+     else case optimized of
+            (x `App` y) -> opt (opt x `App` opt y)
+            _ -> opt core
+  where
+    optimized = rewrite core
 
 
 desugarStmt :: LC.Stmt -> (Core -> Core)
@@ -136,18 +175,35 @@ bracket core =
         _ -> c
 
 
-compile :: LC.Expr -> Comb
-compile expr = compile0 (forceToplevelIO $ desugar expr)
-
-
-compile0 :: Core -> Comb
+compile0 :: Core -> Core
 compile0 core =
+  case bracket core of
+    Var n ->
+      case Combinator.fromString n of
+        Just _ -> Var n
+        _ -> error $ "unexpected free variable " ++ show n
+    Abs {} -> error "unexpected lambda"
+    App x y -> (compile0 x) `App` (compile0 y)
+    x@(IntLit _) -> x
+    x@(Op _) -> x
+
+
+compile1 :: Core -> Comb
+compile1 core =
   case bracket core of
     Var n ->
       case Combinator.fromString n of
         Just comb -> CComb comb
         _ -> error $ "unexpected free variable " ++ show n
     Abs {} -> error "unexpected lambda"
-    App x y -> CApp (compile0 x) (compile0 y)
+    App x y -> CApp (compile1 x) (compile1 y)
     IntLit n -> CIntLit n
     Op op -> CComb (operator op)
+
+
+compile :: LC.Expr -> Comb
+compile
+  = compile1
+  . compile0
+  . forceToplevelIO
+  . desugar

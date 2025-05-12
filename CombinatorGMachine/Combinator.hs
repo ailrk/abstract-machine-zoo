@@ -29,11 +29,18 @@ data Combinator
   | NOT
   | EQV
   | NEQ
+  -- LIST
+  | NIL
+  | CONS
+  | NULL
+  | HEAD
+  | TAIL
   -- IO
   | PRINT
   | READ
   | BIND
   | PURE
+  | ERROR
   deriving (Eq, Show)
 
 
@@ -62,10 +69,16 @@ table =
   , ("NOT", NOT)
   , ("EQV", EQV)
   , ("NEQ", NEQ)
+  , ("NIL", NIL)
+  , ("CONS", CONS)
+  , ("NULL", NULL)
+  , ("HEAD", HEAD)
+  , ("TAIL", TAIL)
   , ("PRINT", PRINT)
   , ("READ", READ)
   , ("BIND", BIND)
   , ("PURE", PURE)
+  , ("ERROR", ERROR)
   ]
 
 

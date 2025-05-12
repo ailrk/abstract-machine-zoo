@@ -23,6 +23,7 @@ data OP
   | Neq
   deriving (Eq, Show)
 
+
 data Lit
   = IntLit Int
   | BoolLit Bool
@@ -39,7 +40,8 @@ data Expr
   | Lit Lit
   | BinOP OP Expr Expr
   | UnOP OP Expr
-  | Do [Stmt]      -- do
+  | Do [Stmt]
+  | List [Expr]
   deriving (Eq, Show)
 
 
@@ -70,7 +72,10 @@ parens = between (symbol "(") (symbol ")")
 
 
 identifier :: Parser Text
-identifier = pack <$> lexeme ((:) <$> letterChar <*> many alphaNumChar)
+identifier = pack <$> lexeme ((:) <$> c1 <*> many c2)
+  where
+    c1 = letterChar <|> char '_' <|> char '\''
+    c2 = alphaNumChar <|> char '_' <|> char '\''
 
 
 reserved :: [Text]
@@ -108,15 +113,21 @@ operatorTable =
 
 pTerm :: Parser Expr
 pTerm = choice
-  [ UnOP Not <$ symbol "!" <*> pTerm
-  , try pDo
-  , try pLet
-  , pLetRec
-  , pIf
-  , pLam
-  , try pApp
-  , pFactor
+  [ between (symbol "(") (symbol ")") pTerm'
+  , pTerm'
   ]
+  where
+    pTerm' = choice
+      [ UnOP Not <$ symbol "!" <*> pTerm
+      , pList
+      , try pDo
+      , try pLet
+      , pLetRec
+      , pIf
+      , pLam
+      , try pApp
+      , pFactor
+      ]
 
 
 pLam :: Parser Expr
@@ -216,6 +227,10 @@ pLetBind = do
 
 pAction :: Parser Stmt
 pAction = Action <$> pExpr
+
+
+pList :: Parser Expr
+pList = List <$> between (symbol "[") (symbol "]") (pExpr `sepBy` symbol ",")
 
 
 program :: Parser Expr

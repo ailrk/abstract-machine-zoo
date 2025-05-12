@@ -1,4 +1,4 @@
 let add = fn a => a + 1 in
 do {
-  PRINT (add 10);
+  PRINT (add 10)
 }
