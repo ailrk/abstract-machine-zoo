@@ -6,17 +6,6 @@ import Combinator
 import Data.List ((\\))
 import Prelude hiding (GT, LT)
 import Data.Function ((&))
-import Debug.Trace
-
-
-data Core
-  = Var Text
-  | Abs Text Core
-  | App Core Core
-  -- builtins
-  | IntLit Int
-  | Op LC.OP -- All operators are curried
-  deriving (Eq, Show)
 
 
 freeVars :: Core -> [Text]
@@ -33,8 +22,8 @@ freeVars c =
 
 
 scottBool :: Bool -> Core
-scottBool True = Abs "x" (Abs "y" (Var "y"))
-scottBool False = Abs "x" (Abs "y" (Var "x"))
+scottBool True = Var "K"
+scottBool False = Var "K" `App` Var "I"
 
 
 -- Force the toplevel lazy IO by wrapping it as
@@ -75,16 +64,9 @@ desugar expr =
                desugar action
              _ -> error "last statement in do must be an exprssion"
     LC.List elems -> do -- scott
-      let cons =
-            Abs "x"
-              (Abs "xs"
-                (Abs "nil"
-                  (Abs "cons"
-                    (App (App (Var "cons") (Var "x")) (Var "xs")))))
-      let nil = Abs "nil" (Abs "cons" (Var "nil"))
       elems
         & fmap desugar
-        & foldr (\e es -> App (App cons e) es) nil
+        & foldr (\e es -> Var "CONS" `App` e `App` es) (Var "NIL")
 
 
 -- To super combinators
@@ -179,9 +161,12 @@ compile0 :: Core -> Core
 compile0 core =
   case bracket core of
     Var n ->
-      case Combinator.fromString n of
+      case lookup n Combinator.table of
         Just _ -> Var n
-        _ -> error $ "unexpected free variable " ++ show n
+        _ ->
+          case lookup n Combinator.builtins of
+            Just expr -> expr
+            _ -> error $ "unexpected free variable " ++ show n
     Abs {} -> error "unexpected lambda"
     App x y -> (compile0 x) `App` (compile0 y)
     x@(IntLit _) -> x
@@ -192,7 +177,7 @@ compile1 :: Core -> Comb
 compile1 core =
   case bracket core of
     Var n ->
-      case Combinator.fromString n of
+      case lookup n Combinator.table of
         Just comb -> CComb comb
         _ -> error $ "unexpected free variable " ++ show n
     Abs {} -> error "unexpected lambda"
@@ -204,6 +189,7 @@ compile1 core =
 compile :: LC.Expr -> Comb
 compile
   = compile1
+  . opt
   . compile0
   . forceToplevelIO
   . desugar

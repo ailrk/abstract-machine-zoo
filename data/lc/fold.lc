@@ -1,0 +1,12 @@
+let xs = [1, 2, 3, 4, 5] in
+let rec foldr =
+  fn f b as =>
+    if NULL as
+      then b
+      else
+        let h = HEAD as in
+        let rest = TAIL as in
+        f h (foldr f b rest) in
+do {
+  PRINT (foldr (fn a b => a + b) 0 xs)
+}

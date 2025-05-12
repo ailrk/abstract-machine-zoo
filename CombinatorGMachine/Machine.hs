@@ -7,6 +7,7 @@ import Data.Char (ord)
 import Data.IORef (IORef)
 import GHC.IORef (writeIORef, readIORef, newIORef)
 import System.IO (hFlush, stdout)
+import Debug.Trace
 
 -- Graph reduction on SKI combinators
 
@@ -76,9 +77,15 @@ spine ref = go ref (Spine [])
 step :: GRef -> IO ()
 step ref = do
   Spine (n:rest) <- spine ref
+  do
+    ss <- traverse dump (n:rest)
+    traceM (show ss)
   redex <- gread n
   case redex of
-    IntLit _ | not . null $ rest -> error "Literal can't be at the lhs"
+    IntLit _ | not . null $ rest -> do
+      ss <- traverse dump (n:rest)
+      traceM (show ss)
+      error "Literal can't be at the lhs"
     Comb k -> reduce k (Spine rest)
     _ -> pure ()
 
@@ -189,15 +196,6 @@ reduce comb (Spine stack) = do
     (EQV, r1:r2:_) -> cmp (==) r1 r2
     (NEQ, r1:r2:_) -> cmp (/=) r1 r2
     (NOT, r1:_) -> not' r1
-    (NIL, r1:_) -> do
-      (self :@ _) <- gread r1
-      gwrite self (Comb K)
-    (CONS, r1:_:_:_:_) -> do
-      (self :@ _) <- gread r1
-      gwrite self (Comb O)
-    (NULL, r1:_) -> undefined
-    (HEAD, r1:_) -> undefined
-    (TAIL, r1:_) -> undefined
     (PURE, r1:_) -> do
       (_ :@ x) <- gread r1
       x' <- nf x
@@ -231,7 +229,10 @@ reduce comb (Spine stack) = do
             (c:_) -> pure $ IntLit $ ord c
             [] -> pure $ IntLit $ ord '\n'
     (ERROR, _) -> error "panic"
-    _ -> error ("invalid graph, " <> show comb)
+    _ -> do
+      ss <- traverse dump stack
+      putStrLn (show ss)
+      error ("invalid graph, " <> show comb)
 
 
 cmp :: (Int -> Int -> Bool) -> GRef -> GRef -> IO ()
@@ -246,24 +247,16 @@ cmp op r1 r2 = do
   gread bool >>= gwrite r2
 
 
+-- not = \b.b (K I) K
 not' :: GRef -> IO ()
 not' r1 = do
   (_ :@ x) <- gread r1
-  b <- gread x
-  case b of
-    Comb K -> do
-      true <- liftA2 (:@) (gnew (Comb K)) (gnew (Comb I))
-      gwrite r1 true
-    l :@ r -> do
-      k <- gread l
-      i <- gread r
-      case (k, i) of
-        (Comb K, Comb I) -> do
-          gwrite r1 (Comb K)
-        _ -> invalid
-    _ -> invalid
-  where
-    invalid = error "Invalid scott boolean"
+  liftA2 (:@)
+    ((liftA2 (:@)
+      (pure x)
+      (toGraph (CComb K `CApp` CComb I))) >>= gnew)
+    (toGraph (CComb K))
+    >>= gwrite r1
 
 
 binop :: (Int -> Int -> Int) -> GRef -> GRef -> IO ()

@@ -1,5 +1,5 @@
-let xs = [1,2,3] in
-let xs3 = CONS 5 (CONS 6 (CONS 7 NIL)) in
 do {
-  PRINT 2
+  if TAIL (HEAD [1,2,3]) == 2
+    then PRINT 1
+    else PRINT 2
 }

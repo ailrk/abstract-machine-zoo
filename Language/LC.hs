@@ -119,7 +119,6 @@ pTerm = choice
   where
     pTerm' = choice
       [ UnOP Not <$ symbol "!" <*> pTerm
-      , pList
       , try pDo
       , try pLet
       , pLetRec
@@ -160,7 +159,8 @@ pLit = choice
 
 pFactor :: Parser Expr
 pFactor = choice
-  [ try $ Lit <$> pLit
+  [ pList
+  , try $ Lit <$> pLit
   , Var <$> try (identifier >>= checkReserved)
   , parens pExpr
   ]

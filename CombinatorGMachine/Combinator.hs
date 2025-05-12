@@ -1,17 +1,17 @@
 module Combinator where
 import Data.Text (Text)
-import Data.String (IsString)
 import Prelude hiding (GT, LT)
+import qualified LC
 
 -- The combinator language
 
 data Combinator
   = S  -- x y z     = x z (y x)      (<*>)
-  | K  -- x y       = y              const, False, []
+  | K  -- x y       = x              const, True, []
   | I  -- x         = x              id
   | B  -- x y z     = x (y z)        (.)
   | C  -- x y z     = (x z) y        flip
-  | A  -- x y       = x              True
+  | A  -- x y       = y              False
   | U  -- x y       = y x            uncurrg
   | Z  -- x y z     = x y
   | P  -- x y z     = (z x) y        (,)
@@ -29,12 +29,6 @@ data Combinator
   | NOT
   | EQV
   | NEQ
-  -- LIST
-  | NIL
-  | CONS
-  | NULL
-  | HEAD
-  | TAIL
   -- IO
   | PRINT
   | READ
@@ -44,7 +38,54 @@ data Combinator
   deriving (Eq, Show)
 
 
-table :: (Eq s, IsString s) => [(s, Combinator)]
+data Core
+  = Var Text
+  | Abs Text Core
+  | App Core Core
+  -- builtins
+  | IntLit Int
+  | Op LC.OP -- All operators are curried
+  deriving (Eq, Show)
+
+
+builtins :: [(Text, Core)]
+builtins =
+  [ -- NIL = λnil cons. nil
+    ("NIL" , Var "K")
+    -- CONS = λx xs. λnil cons. cons x xs
+  , ("CONS"
+    , Abs "x"
+        (Abs "xs"
+          (Abs "nil"
+            (Abs "cons"
+              (Var "cons" `App` Var "x" `App` Var "xs"))))
+    )
+    -- NULL = λl. l  true  false
+    --  where true = K false = K I
+  , ("NULL"
+    , Abs "l"
+        (Var "l"
+          `App` (Var "K")
+          `App` (Var "A"))
+    )
+    -- HEAD = λl. l err K
+  , ("HEAD"
+    , Abs "l"
+        (Var "l"
+          `App` Var "ERROR"
+          `App` (Var "K"))
+    )
+    -- TAIL = λl. l err A
+  , ("TAIL"
+    , Abs "l"
+        (Var "l"
+          `App` Var "ERROR"
+          `App` (Var "A"))
+    )
+  ]
+
+
+table :: [(Text, Combinator)]
 table =
   [ ("S", S)
   , ("K", K)
@@ -69,21 +110,12 @@ table =
   , ("NOT", NOT)
   , ("EQV", EQV)
   , ("NEQ", NEQ)
-  , ("NIL", NIL)
-  , ("CONS", CONS)
-  , ("NULL", NULL)
-  , ("HEAD", HEAD)
-  , ("TAIL", TAIL)
   , ("PRINT", PRINT)
   , ("READ", READ)
   , ("BIND", BIND)
   , ("PURE", PURE)
   , ("ERROR", ERROR)
   ]
-
-
-fromString :: (Eq s, IsString s) => s -> Maybe Combinator
-fromString s = lookup (s) $ table
 
 
 data Comb
