@@ -35,6 +35,15 @@ scottBool True = Abs "x" (Abs "y" (Var "y"))
 scottBool False = Abs "x" (Abs "y" (Var "x"))
 
 
+-- Force the toplevel lazy IO by wrapping it as
+-- a dependency of another IO monad.
+forceToplevelIO :: Core -> Core
+forceToplevelIO core =
+  App
+    (App (Var "BIND") core)
+    (Abs "_" (App (Var "PURE") (IntLit 0)))
+
+
 desugar :: LC.Expr -> Core
 desugar expr =
   case expr of
@@ -57,6 +66,27 @@ desugar expr =
         LC.BoolLit b -> scottBool b
     LC.BinOP op l r -> App (App (Op op) (desugar l)) (desugar r)
     LC.UnOP op a -> App (Op op) (desugar a)
+    LC.Do stmts -> do
+      let seq' = foldr (.) id $ fmap desugarStmt (init stmts)
+      seq' $ case last stmts of
+             LC.Action action -> do
+               desugar action
+             _ -> error "last statement in do must be an exprssion"
+
+
+desugarStmt :: LC.Stmt -> (Core -> Core)
+desugarStmt stmt =
+  case stmt of
+    LC.LetBind x action ->
+      \k ->
+        App
+          (App (Var "BIND") (desugar action))
+          (Abs x k)
+    LC.Action action ->
+      \k ->
+        App
+          (App (Var "BIND") (desugar action))
+          (Abs "_" k)
 
 
 operator :: LC.OP -> Combinator
@@ -106,9 +136,8 @@ bracket core =
         _ -> c
 
 
-
 compile :: LC.Expr -> Comb
-compile expr = compile0 (desugar expr)
+compile expr = compile0 (forceToplevelIO $ desugar expr)
 
 
 compile0 :: Core -> Comb
@@ -117,7 +146,7 @@ compile0 core =
     Var n ->
       case Combinator.fromString n of
         Just comb -> CComb comb
-        _ -> error "unexpected free variable"
+        _ -> error $ "unexpected free variable " ++ show n
     Abs {} -> error "unexpected lambda"
     App x y -> CApp (compile0 x) (compile0 y)
     IntLit n -> CIntLit n

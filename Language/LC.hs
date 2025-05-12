@@ -39,6 +39,13 @@ data Expr
   | Lit Lit
   | BinOP OP Expr Expr
   | UnOP OP Expr
+  | Do [Stmt]      -- do
+  deriving (Eq, Show)
+
+
+data Stmt
+  = LetBind Text Expr
+  | Action Expr
   deriving (Eq, Show)
 
 
@@ -67,7 +74,7 @@ identifier = pack <$> lexeme ((:) <$> letterChar <*> many alphaNumChar)
 
 
 reserved :: [Text]
-reserved = ["let", "rec", "in", "match", "with", "if", "then", "else", "true", "false"]
+reserved = ["let", "rec", "in", "match", "with", "if", "then", "else", "true", "false", "do", "<-", ";"]
 
 
 reservedWord :: String -> Parser ()
@@ -102,6 +109,7 @@ operatorTable =
 pTerm :: Parser Expr
 pTerm = choice
   [ UnOP Not <$ symbol "!" <*> pTerm
+  , try pDo
   , try pLet
   , pLetRec
   , pIf
@@ -183,6 +191,31 @@ pIf = do
   reservedWord "else"
   fl <- pExpr
   return $ If cond tr fl
+
+
+pDo :: Parser Expr
+pDo = do
+  reservedWord "do"
+  stmts <- between (symbol "{") (symbol "}") (sepBy pStmt (symbol ";"))
+  pure (Do stmts)
+
+
+pStmt :: Parser Stmt
+pStmt = do
+  stmt <- try pLetBind <|> pAction
+  pure stmt
+
+
+pLetBind :: Parser Stmt
+pLetBind = do
+  var <- identifier
+  _ <- symbol "<-"
+  expr <- pExpr
+  pure (LetBind var expr)
+
+
+pAction :: Parser Stmt
+pAction = Action <$> pExpr
 
 
 program :: Parser Expr

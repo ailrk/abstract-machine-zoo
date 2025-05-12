@@ -1,2 +1,5 @@
 let a = 3 in
-a + 1
+do {
+  PRINT (a + 1);
+  PRINT 2;
+}

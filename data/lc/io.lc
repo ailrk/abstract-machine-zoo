@@ -1,0 +1,8 @@
+do {
+  let x = do { PRINT 3; PURE 1 } in PRINT 9;
+  n <- PURE 1;
+  a <- READ 0;
+  PRINT a;
+  b <- READ 0;
+  PRINT b
+}

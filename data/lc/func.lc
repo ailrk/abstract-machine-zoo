@@ -1,2 +1,4 @@
 let add = fn a => a + 1 in
-add 10
+do {
+  PRINT (add 10);
+}

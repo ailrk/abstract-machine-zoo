@@ -1,56 +1,55 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Machine where
 
-import Control.Monad.ST (ST)
-import Data.STRef (STRef, newSTRef, readSTRef, writeSTRef)
 import Combinator (Combinator(..), Comb(..))
 import Prelude hiding (LT, GT)
+import Data.Char (ord)
+import Data.IORef (IORef)
+import GHC.IORef (writeIORef, readIORef, newIORef)
+import System.IO (hFlush, stdout)
 
 -- Graph reduction on SKI combinators
 
-newtype GRef s = GRef (STRef s (Graph s))
+newtype GRef = GRef (IORef Graph)
   deriving Eq
 
-gnew :: Graph s -> ST s (GRef s)
-gnew g = GRef <$> newSTRef g
+gnew :: Graph -> IO GRef
+gnew g = GRef <$> newIORef g
 
-gread :: GRef s -> ST s (Graph s)
-gread (GRef ref) = readSTRef ref
+gread :: GRef -> IO Graph
+gread (GRef ref) = readIORef ref
 
-gwrite :: GRef s -> Graph s -> ST s ()
-gwrite (GRef ref) g  = writeSTRef ref g
-
-
-instance MonadFail (ST s) where
-  fail = error
+gwrite :: GRef -> Graph -> IO ()
+gwrite (GRef ref) g  = writeIORef ref g
 
 
 infix 5 :@
 
-data Graph s
-  = GRef s :@ GRef s
+data Graph
+  = GRef :@ GRef
   | Comb Combinator
   | IntLit Int
-  deriving Eq
+  | Action (IO Graph)
 
 
-dump :: GRef s -> ST s String
+dump :: GRef -> IO String
 dump ref = do
   g <- gread ref
   case g of
     Comb c -> pure $ show c
     IntLit n -> pure $ show n
+    Action _ -> pure "{IO}"
     r1 :@ r2 -> do
       s1 <- dump r1
       s2 <- dump r2
       pure $ "(" ++ s1 ++ " @ " ++ s2 ++ ")"
 
 
-newtype Spine s = Spine [GRef s]
+newtype Spine = Spine [GRef]
 
 
 -- encode into graph
-toGraph :: Comb -> ST s (GRef s)
+toGraph :: Comb -> IO GRef
 toGraph c =
   case c of
     CApp l r -> do
@@ -63,7 +62,7 @@ toGraph c =
 
 
 -- collect left most spines
-spine :: GRef s -> ST s (Spine s)
+spine :: GRef -> IO Spine
 spine ref = go ref (Spine [])
   where
     go gref (Spine stack) = do
@@ -74,7 +73,7 @@ spine ref = go ref (Spine [])
 
 
 -- reduce one step
-step :: GRef s -> ST s ()
+step :: GRef -> IO ()
 step ref = do
   Spine (n:rest) <- spine ref
   redex <- gread n
@@ -85,17 +84,29 @@ step ref = do
 
 
 
--- reduce to normal form
-normal :: GRef s -> ST s (GRef s)
-normal ref = do
+-- reduce to nf form
+nf :: GRef -> IO GRef
+nf ref = do
   step ref
   graph <- gread ref
   case graph of
-    _ :@ _ -> normal ref
+    _ :@ _ -> nf ref
     _ -> pure ref
 
 
-reduce :: Combinator -> Spine s -> ST s ()
+whnf :: GRef -> IO GRef
+whnf ref = do
+  step ref
+  graph <- gread ref
+  case graph of
+    x :@ y -> do
+      x' <- whnf x
+      gwrite ref (x' :@ y)
+      pure ref
+    _ -> pure ref
+
+
+reduce :: Combinator -> Spine -> IO ()
 reduce comb (Spine stack) = do
   case (comb, stack) of
     (S, r1:r2:r3:_) -> do
@@ -127,39 +138,6 @@ reduce comb (Spine stack) = do
         (gnew $ x :@ z)
         (pure y)
         >>= gwrite r3
-    (S', r1:r2:r3:r4:_) -> do
-      (_ :@ x) <- gread r1
-      (_ :@ y) <- gread r2
-      (_ :@ z) <- gread r3
-      (_ :@ w) <- gread r4
-      liftA2 (:@)
-        (pure x)
-        (liftA2 (:@)
-          (gnew $ y :@ w)
-          (gnew $ z :@ w) >>= gnew)
-        >>= gwrite r4
-    (B', r1:r2:r3:r4:_) -> do
-      (_ :@ x) <- gread r1
-      (_ :@ y) <- gread r2
-      (_ :@ z) <- gread r3
-      (_ :@ w) <- gread r4
-      liftA2 (:@)
-        (pure x)
-        (liftA2 (:@)
-          (pure y)
-          (gnew $ z :@ w) >>= gnew)
-        >>= gwrite r4
-    (C', r1:r2:r3:r4:_) -> do
-      (_ :@ x) <- gread r1
-      (_ :@ y) <- gread r2
-      (_ :@ z) <- gread r3
-      (_ :@ w) <- gread r4
-      liftA2 (:@)
-        (pure x)
-        (liftA2 (:@)
-          (gnew $ y :@ w)
-          (pure z) >>= gnew)
-        >>= gwrite r4
     (A, r1:r2:_) -> do
       (_ :@ _) <- gread r1
       (_ :@ y) <- gread r2
@@ -200,15 +178,6 @@ reduce comb (Spine stack) = do
     (Y, r1:_) -> do
       (_ :@ x) <- gread r1
       gwrite r1 $ x :@ r1
-    (K2, r1:_:r3:_) -> do
-      (_ :@ x) <- gread r1
-      gread x >>= gwrite r3
-    (K3, r1:_:_:r4:_) -> do
-      (_ :@ x) <- gread r1
-      gread x >>= gwrite r4
-    (K3, r1:_:_:_:r5:_) -> do
-      (_ :@ x) <- gread r1
-      gread x >>= gwrite r5
     (ADD, r1:r2:_) -> binop (+) r1 r2
     (SUB, r1:r2:_) -> binop (-) r1 r2
     (MUL, r1:r2:_) -> binop (*) r1 r2
@@ -220,22 +189,54 @@ reduce comb (Spine stack) = do
     (EQV, r1:r2:_) -> cmp (==) r1 r2
     (NEQ, r1:r2:_) -> cmp (/=) r1 r2
     (NOT, r1:_) -> not' r1
+    (PURE, r1:_) -> do
+      (_ :@ x) <- gread r1
+      x' <- nf x
+      g <- gread x'
+      gwrite r1 $ Action do
+        pure g
+    (BIND, r1:r2:_) -> do
+      (_ :@ x) <- gread r1
+      (_ :@ y) <- gread r2
+      x' <- nf x -- evaluate IO code to Action. need normal form.
+      Action m <- gread x'
+      a <- m -- force the action
+      f <- gread y
+      liftA2 (:@)
+        (gnew f)
+        (gnew a)
+        >>= gwrite r2
+    (PRINT, r1:_) -> do
+      (_ :@ x) <- gread r1
+      str <- nf x >>= dump
+      gwrite r1 $
+        Action do
+          putStrLn str
+          pure (Comb I)
+    (READ, r1:_) -> do
+      gwrite r1 $
+        Action do
+          hFlush stdout
+          line <- getLine
+          case line of
+            (c:_) -> pure $ IntLit $ ord c
+            [] -> pure $ IntLit $ ord '\n'
     _ -> error ("invalid graph, " <> show comb)
 
 
-cmp :: (Int -> Int -> Bool) -> GRef s -> GRef s -> ST s ()
+cmp :: (Int -> Int -> Bool) -> GRef -> GRef -> IO ()
 cmp op r1 r2 = do
   (_ :@ x) <- gread r1
   (_ :@ y) <- gread r2
-  IntLit x' <- normal x >>= gread
-  IntLit y' <- normal y >>= gread
+  IntLit x' <- nf x >>= gread
+  IntLit y' <- nf y >>= gread
   bool <- case op x' y' of
             True -> toGraph $ CComb K
             False -> toGraph $ CComb K `CApp` CComb I
   gread bool >>= gwrite r2
 
 
-not' :: GRef s -> ST s ()
+not' :: GRef -> IO ()
 not' r1 = do
   (_ :@ x) <- gread r1
   b <- gread x
@@ -255,10 +256,10 @@ not' r1 = do
     invalid = error "Invalid scott boolean"
 
 
-binop :: (Int -> Int -> Int) -> GRef s -> GRef s -> ST s ()
+binop :: (Int -> Int -> Int) -> GRef -> GRef -> IO ()
 binop op r1 r2 = do
   (_ :@ x) <- gread r1
   (_ :@ y) <- gread r2
-  IntLit x' <- normal x >>= gread
-  IntLit y' <- normal y >>= gread
+  IntLit x' <- nf x >>= gread
+  IntLit y' <- nf y >>= gread
   gwrite r2 (IntLit $ op x' y')
