@@ -7,7 +7,6 @@ import Data.Char (ord)
 import Data.IORef (IORef)
 import GHC.IORef (writeIORef, readIORef, newIORef)
 import System.IO (hFlush, stdout)
-import Debug.Trace
 
 -- Graph reduction on SKI combinators
 
@@ -77,14 +76,9 @@ spine ref = go ref (Spine [])
 step :: GRef -> IO ()
 step ref = do
   Spine (n:rest) <- spine ref
-  do
-    ss <- traverse dump (n:rest)
-    traceM (show ss)
   redex <- gread n
   case redex of
     IntLit _ | not . null $ rest -> do
-      ss <- traverse dump (n:rest)
-      traceM (show ss)
       error "Literal can't be at the lhs"
     Comb k -> reduce k (Spine rest)
     _ -> pure ()
