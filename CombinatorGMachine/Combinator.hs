@@ -2,6 +2,7 @@ module Combinator where
 import Data.Text (Text)
 import Prelude hiding (GT, LT)
 import qualified LC
+import qualified Data.Text as Text
 
 -- The combinator language
 
@@ -48,6 +49,16 @@ data Core
   deriving (Eq, Show)
 
 
+displayCore :: Core -> String
+displayCore core =
+  case core of
+    Var n -> Text.unpack n
+    Abs x body -> "\\" ++ Text.unpack x ++ "." ++ displayCore body ++ ""
+    App a b -> "(" ++ displayCore a ++ " @ " ++ displayCore b ++ ")"
+    IntLit n -> show n
+    Op op -> show op
+
+
 builtins :: [(Text, Core)]
 builtins =
   [ -- NIL = λnil cons. nil
@@ -64,23 +75,25 @@ builtins =
     --  where true = K false = K I
   , ("NULL"
     , Abs "l"
-        (Var "l"
-          `App` (Var "K")
-          `App` (Var "A"))
+        (Abs "t"
+          (Abs "f"
+            (Var "l"
+              `App` Var "t"
+              `App` (Abs "_1" (Abs "_2" (Var "f"))))))
     )
     -- HEAD = λl. l err K
   , ("HEAD"
     , Abs "l"
         (Var "l"
           `App` Var "ERROR"
-          `App` (Var "K"))
+          `App` Var "K")
     )
     -- TAIL = λl. l err A
   , ("TAIL"
     , Abs "l"
         (Var "l"
           `App` Var "ERROR"
-          `App` (Var "A"))
+          `App` Var "A")
     )
   ]
 

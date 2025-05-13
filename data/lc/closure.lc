@@ -1,4 +1,4 @@
-let makeAdder = fn x y => x + y in
+let makeAdder x y = x + y in
 let add5 = makeAdder 5 in
 do {
   PRINT (add5 3)

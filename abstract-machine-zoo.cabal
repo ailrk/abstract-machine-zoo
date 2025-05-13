@@ -23,7 +23,8 @@ common shared-settings
     unordered-containers,
     megaparsec,
     parser-combinators,
-    deepseq
+    deepseq,
+    pretty-simple
 
 common shared-executable-settings
   build-depends:

@@ -39,24 +39,29 @@ desugar :: LC.Expr -> Core
 desugar expr =
   case expr of
     LC.Var val -> Var val
-    LC.Lam args body -> foldr (\a b -> Abs a b) (desugar body) (reverse args)
-    LC.App f params -> foldr (\a b -> App b (desugar a)) (desugar f) (reverse params)
-    LC.Let name val body -> App (Abs name (desugar body)) (desugar val)
-    LC.LetRec name val body ->
-      App
-        (Abs name (desugar body))
-        (App (Var "Y") (Abs name (desugar val)))
+    LC.Lam params body -> foldr (\a b -> Abs a b) (desugar body) params
+    LC.App f args -> foldr (\a b -> b `App` (desugar a)) (desugar f) (reverse args)
+    LC.Let name params val body
+      | [] <- params -> Abs name (desugar body) `App` desugar val
+      | otherwise -> desugar $ LC.Let name [] (LC.Lam params val) body
+    -- = Y (\self.(\x....))
+    LC.LetRec name params val body
+      | [] <- params ->
+          App
+            (Abs name (desugar body))
+            (App (Var "Y") (Abs name (desugar val)))
+      | otherwise -> desugar $ LC.LetRec name [] (LC.Lam params val) body
     LC.If cond t e -> do
       let cond' = desugar cond -- scott
       let t' = desugar t
       let e' = desugar e
-      App (App cond' t') e'
+      cond' `App` t' `App` e'
     LC.Lit lit ->
       case lit of
         LC.IntLit n -> IntLit n
         LC.BoolLit b -> scottBool b
-    LC.BinOP op l r -> App (App (Op op) (desugar l)) (desugar r)
-    LC.UnOP op a -> App (Op op) (desugar a)
+    LC.BinOP op l r -> (Op op) `App` (desugar l) `App` (desugar r)
+    LC.UnOP op a -> (Op op) `App` (desugar a)
     LC.Do stmts -> do
       let seq' = foldr (.) id $ fmap desugarStmt (init stmts)
       seq' $ case last stmts of
@@ -98,16 +103,8 @@ opt core =
 desugarStmt :: LC.Stmt -> (Core -> Core)
 desugarStmt stmt =
   case stmt of
-    LC.LetBind x action ->
-      \k ->
-        App
-          (App (Var "BIND") (desugar action))
-          (Abs x k)
-    LC.Action action ->
-      \k ->
-        App
-          (App (Var "BIND") (desugar action))
-          (Abs "_" k)
+    LC.LetBind x action -> \k -> (Var "BIND" `App` desugar action) `App` (Abs x k)
+    LC.Action action -> \k -> (Var "BIND" `App` desugar action) `App` (Abs "_" k)
 
 
 operator :: LC.OP -> Combinator

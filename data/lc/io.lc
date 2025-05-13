@@ -1,8 +1,23 @@
+let action =
+  do {
+    PRINT 3;
+    y <- PURE 3;
+    PURE (1 + y)
+  } in
 do {
-  let x = do { PRINT 3; PURE 1 } in PRINT 9;
-  n <- PURE 1;
-  a <- READ 0;
-  PRINT a;
-  b <- READ 0;
-  PRINT b
+  do {
+    let rec loop n m =
+      if n == 0 then PRINT n else do { PRINT n; PRINT m; loop (n - 1) (m + 1)}
+      in loop 10 1000
+  };
+
+  do {
+    a <- READ 0; PRINT a;
+    b <- READ 0; PRINT b
+  };
+
+  do {
+    x <- action;
+    PRINT x
+  }
 }

@@ -7,6 +7,8 @@ import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
 import System.IO (readFile')
+import Data.Maybe (maybeToList)
+import Control.Monad (join)
 
 
 data OP
@@ -34,8 +36,8 @@ data Expr
   = Var Text
   | Lam [Text] Expr
   | App Expr [Expr]
-  | Let Text Expr Expr
-  | LetRec Text Expr Expr
+  | Let Text [Text] Expr Expr
+  | LetRec Text [Text] Expr Expr
   | If Expr Expr Expr
   | Lit Lit
   | BinOP OP Expr Expr
@@ -120,10 +122,10 @@ pTerm = choice
     pTerm' = choice
       [ UnOP Not <$ symbol "!" <*> pTerm
       , try pDo
+      , try pLetRec
       , try pLet
-      , pLetRec
-      , pIf
-      , pLam
+      , try pIf
+      , try pLam
       , try pApp
       , pFactor
       ]
@@ -174,11 +176,12 @@ pLet :: Parser Expr
 pLet = do
   reservedWord "let"
   name <- identifier
+  params <- optional (some identifier) >>= pure . join . maybeToList
   _ <- symbol "="
   val <- pExpr
   reservedWord "in"
   body <- pExpr
-  return $ Let name val body
+  return $ Let name params val body
 
 
 pLetRec :: Parser Expr
@@ -186,11 +189,12 @@ pLetRec = do
   reservedWord "let"
   reservedWord "rec"
   name <- identifier
+  params <- optional (some identifier) >>= pure . join . maybeToList
   _ <- symbol "="
   body <- pExpr
   reservedWord "in"
   rest <- pExpr
-  return $ LetRec name body rest
+  return $ LetRec name params body rest
 
 
 pIf :: Parser Expr

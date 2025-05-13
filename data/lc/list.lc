@@ -1,5 +1,52 @@
+let rec foldr f b xs =
+  if NULL xs
+    then b
+    else f (HEAD xs) (foldr f b (TAIL xs)) in
+let rec sum xs = foldr (fn a b => a + b) 0 xs in
+let rec map f xs =
+  if NULL xs
+    then NIL
+    else CONS (f (HEAD xs)) (map f (TAIL xs)) in
+let rec filter p xs =
+  if NULL xs
+    then NIL
+    else
+      let h = HEAD xs in
+      let rest = TAIL xs in
+        if p h
+          then CONS h (filter p rest)
+          else filter p rest in
+let rec for xs f =
+  if NULL xs
+    then PURE 0
+    else do {
+      f (HEAD xs);
+      for (TAIL xs) f
+    } in
+let rec append xs ys =
+  if NULL xs
+    then ys
+    else CONS (HEAD xs) (append (TAIL xs) ys) in
+let rec range i j =
+  if i == j
+    then NIL
+  else
+    if i > j
+      then CONS j (range i (j + 1))
+    else
+      CONS j (range i (j - 1)) in
+alet rec elem a xs =
+  if NULL xs
+    then false
+    else
+      if a == (HEAD xs)
+        then true
+        else elem a (TAIL xs) in
 do {
-  if HEAD (TAIL [1,2,3]) == 2
-    then PRINT 1
-    else PRINT 2
+  let xs = map (fn a => a + 10) (filter (fn a => a > 2) [1,2,3,4,5])
+  in
+    for (append xs (range 100 90)) (fn x => do {
+      PRINT x
+    });
+  PRINT (sum [1,2,3])
 }

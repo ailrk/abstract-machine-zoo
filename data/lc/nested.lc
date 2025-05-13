@@ -1,4 +1,4 @@
 let a = 1 in
 let b = 2 in
-let add = fn x => x + a + b in
+let add x = x + a + b in
 add 5

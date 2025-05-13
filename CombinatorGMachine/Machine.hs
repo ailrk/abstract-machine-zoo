@@ -78,8 +78,6 @@ step ref = do
   Spine (n:rest) <- spine ref
   redex <- gread n
   case redex of
-    IntLit _ | not . null $ rest -> do
-      error "Literal can't be at the lhs"
     Comb k -> reduce k (Spine rest)
     _ -> pure ()
 
