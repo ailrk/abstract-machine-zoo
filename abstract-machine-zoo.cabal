@@ -36,6 +36,7 @@ library language
   exposed-modules:
     LC
     IMP
+    OP
 
 executable cek
   import:            shared-settings, shared-executable-settings

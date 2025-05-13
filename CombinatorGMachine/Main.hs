@@ -19,14 +19,6 @@ data Config = Config
   }
 
 
-debug :: LC.Expr -> IO ()
-debug expr = do
-  let desugared = Compiler.LC.desugar expr
-  graph <- (Machine.toGraph . Compiler.LC.compile $ expr) >>= Machine.dump
-  putStrLn (show desugared)
-  putStrLn graph
-
-
 eval :: Config -> LC.Expr -> String -> IO ()
 eval config expr src = do
   let print' = if pretty config then pPrintString else print

@@ -4,6 +4,7 @@ import Machine
 import qualified IMP
 import Prelude hiding (LT, GT)
 import Control.Monad.State
+import qualified OP
 
 
 compile :: IMP.Stmt -> Program
@@ -94,20 +95,20 @@ compileExpr expr =
       combine [aProg, opProg]
 
 
-compileOp :: IMP.OP -> State Int Program
+compileOp :: OP.OP -> State Int Program
 compileOp op =
   case op of
-    IMP.Add -> emit ADD
-    IMP.Sub -> emit SUB
-    IMP.Mul -> emit MUL
-    IMP.Div -> emit DIV
-    IMP.Gt -> emit GT
-    IMP.Gte -> emit GTE
-    IMP.Lt -> emit LT
-    IMP.Lte -> emit LTE
-    IMP.Not -> emit NOT
-    IMP.Eqv -> emit EQV
-    IMP.Neq -> emit NEQ
+    OP.Add -> emit ADD
+    OP.Sub -> emit SUB
+    OP.Mul -> emit MUL
+    OP.Div -> emit DIV
+    OP.Gt -> emit GT
+    OP.Gte -> emit GTE
+    OP.Lt -> emit LT
+    OP.Lte -> emit LTE
+    OP.Not -> emit NOT
+    OP.Eqv -> emit EQV
+    OP.Neq -> emit NEQ
 
 
 addLabel :: Label -> Program

@@ -82,7 +82,6 @@ step ref = do
     _ -> pure ()
 
 
-
 -- reduce to nf form
 nf :: GRef -> IO GRef
 nf ref = do

@@ -1,8 +1,8 @@
 module Combinator where
 import Data.Text (Text)
 import Prelude hiding (GT, LT)
-import qualified LC
 import qualified Data.Text as Text
+import qualified OP
 
 -- The combinator language
 
@@ -45,7 +45,7 @@ data Core
   | App Core Core
   -- builtins
   | IntLit Int
-  | Op LC.OP -- All operators are curried
+  | Op OP.OP -- All operators are curried
   deriving (Eq, Show)
 
 

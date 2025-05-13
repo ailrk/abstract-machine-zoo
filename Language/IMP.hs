@@ -1,5 +1,7 @@
 module IMP where
 
+-- A simple imperative langauge
+
 import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -8,27 +10,14 @@ import Data.Text (Text, pack)
 import qualified Text.Megaparsec.Char.Lexer as L
 import Prelude hiding (LT, GT)
 import System.IO (readFile')
-
-data OP
-  = Add
-  | Sub
-  | Mul
-  | Div
-  | Gt
-  | Gte
-  | Lt
-  | Lte
-  | Not
-  | Eqv
-  | Neq
-  deriving (Eq, Show)
+import qualified OP
 
 
 data Expr
   = Var Text
   | IntLit Int
-  | BinOP OP Expr Expr
-  | UnOP OP Expr
+  | BinOP OP.OP Expr Expr
+  | UnOP OP.OP Expr
   deriving (Eq, Show)
 
 
@@ -83,22 +72,22 @@ expr = makeExprParser term table
   where
     term =
           parens expr
-      <|> UnOP Not <$ symbol "!" <*> term
+      <|> UnOP OP.Not <$ symbol "!" <*> term
       <|> IntLit <$> integer
       <|> Var <$> identifier
 
     table =
-      [ [ Prefix (UnOP Not <$ symbol "!") ]
-      , [ InfixL (BinOP Mul <$ symbol "*")
-        , InfixL (BinOP Div <$ symbol "/") ]
-      , [ InfixL (BinOP Add <$ symbol "+")
-        , InfixL (BinOP Sub <$ symbol "-") ]
-      , [ InfixN (BinOP Eqv <$ symbol "==")
-        , InfixN (BinOP Neq <$ symbol "!=")
-        , InfixN (BinOP Gt <$ symbol ">")
-        , InfixN (BinOP Gte <$ symbol ">=")
-        , InfixN (BinOP Lt <$ symbol "<")
-        , InfixN (BinOP Lte <$ symbol "<=") ]
+      [ [ Prefix (UnOP OP.Not <$ symbol "!") ]
+      , [ InfixL (BinOP OP.Mul <$ symbol "*")
+        , InfixL (BinOP OP.Div <$ symbol "/") ]
+      , [ InfixL (BinOP OP.Add <$ symbol "+")
+        , InfixL (BinOP OP.Sub <$ symbol "-") ]
+      , [ InfixN (BinOP OP.Eqv <$ symbol "==")
+        , InfixN (BinOP OP.Neq <$ symbol "!=")
+        , InfixN (BinOP OP.Gt <$ symbol ">")
+        , InfixN (BinOP OP.Gte <$ symbol ">=")
+        , InfixN (BinOP OP.Lt <$ symbol "<")
+        , InfixN (BinOP OP.Lte <$ symbol "<=") ]
       ]
 
 

@@ -1,6 +1,6 @@
 module Machine where
 import Data.Text (Text)
-import qualified LC
+import OP (OP(..))
 
 
 type Symbol = Text
@@ -14,7 +14,7 @@ data Core
   | App Core Core
   -- builtins
   | IntLit Int
-  | Op LC.OP -- All operators are curried
+  | Op OP -- All operators are curried
   deriving (Eq, Show)
 
 

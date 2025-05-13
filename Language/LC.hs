@@ -1,5 +1,7 @@
 module LC where
 
+-- A simple ML style untyped lambda calculus sugar.
+
 import Data.Void
 import Data.Text (Text, pack, unpack)
 import Text.Megaparsec
@@ -9,21 +11,7 @@ import Control.Monad.Combinators.Expr (Operator (..), makeExprParser)
 import System.IO (readFile')
 import Data.Maybe (maybeToList)
 import Control.Monad (join)
-
-
-data OP
-  = Add
-  | Sub
-  | Mul
-  | Div
-  | Gt
-  | Gte
-  | Lt
-  | Lte
-  | Not
-  | Eqv
-  | Neq
-  deriving (Eq, Show)
+import OP (OP(..))
 
 
 data Lit
@@ -58,7 +46,7 @@ type Parser = Parsec Void String
 -- Lexer
 
 sc :: Parser ()
-sc = L.space space1 empty empty
+sc = L.space space1 (L.skipLineComment "--") (L.skipBlockCommentNested "{-" "-}")
 
 
 lexeme :: Parser a -> Parser a

@@ -35,7 +35,7 @@ let rec range i j =
       then CONS j (range i (j + 1))
     else
       CONS j (range i (j - 1)) in
-alet rec elem a xs =
+let rec elem a xs =
   if NULL xs
     then false
     else
@@ -45,8 +45,5 @@ alet rec elem a xs =
 do {
   let xs = map (fn a => a + 10) (filter (fn a => a > 2) [1,2,3,4,5])
   in
-    for (append xs (range 100 90)) (fn x => do {
-      PRINT x
-    });
-  PRINT (sum [1,2,3])
+    for (append xs (range 100 90)) (fn x => do { PRINT (sum (range 0 x)) })
 }

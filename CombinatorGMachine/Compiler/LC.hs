@@ -6,6 +6,7 @@ import Combinator
 import Data.List ((\\))
 import Prelude hiding (GT, LT)
 import Data.Function ((&))
+import qualified OP
 
 
 freeVars :: Core -> [Text]
@@ -107,20 +108,20 @@ desugarStmt stmt =
     LC.Action action -> \k -> (Var "BIND" `App` desugar action) `App` (Abs "_" k)
 
 
-operator :: LC.OP -> Combinator
+operator :: OP.OP -> Combinator
 operator o =
   case o of
-    LC.Add -> ADD
-    LC.Sub -> SUB
-    LC.Mul -> MUL
-    LC.Div -> DIV
-    LC.Gt -> GT
-    LC.Gte -> GTE
-    LC.Lt -> LT
-    LC.Lte -> LTE
-    LC.Eqv -> EQV
-    LC.Neq -> NEQ
-    LC.Not -> NOT
+    OP.Add -> ADD
+    OP.Sub -> SUB
+    OP.Mul -> MUL
+    OP.Div -> DIV
+    OP.Gt -> GT
+    OP.Gte -> GTE
+    OP.Lt -> LT
+    OP.Lte -> LTE
+    OP.Eqv -> EQV
+    OP.Neq -> NEQ
+    OP.Not -> NOT
 
 
 -- Notation: [x]N is a lambda term extentionally equal to \x.M
