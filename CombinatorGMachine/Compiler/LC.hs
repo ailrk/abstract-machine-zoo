@@ -40,7 +40,7 @@ desugar expr =
   case expr of
     LC.Var val -> Var val
     LC.Lam args body -> foldr (\a b -> Abs a b) (desugar body) (reverse args)
-    LC.App f params -> foldr (\a b -> App b (desugar a)) (desugar f) params
+    LC.App f params -> foldr (\a b -> App b (desugar a)) (desugar f) (reverse params)
     LC.Let name val body -> App (Abs name (desugar body)) (desugar val)
     LC.LetRec name val body ->
       App
