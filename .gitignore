@@ -10,3 +10,7 @@ result
 profile*
 .profile
 js/node_modules/
+*.hp
+*.aux
+*.prof
+*.ps

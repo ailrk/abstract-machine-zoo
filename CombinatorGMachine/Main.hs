@@ -51,7 +51,9 @@ main = do
           ("--show-core1" `elem` args)
           ("--show-comb" `elem` args)
           ("--pretty" `elem` args)
-  let stripped = filter (not . ("--" `isPrefixOf`)) args
+  let stripped = filter (not . ("+" `isPrefixOf`))
+               . filter (not . ("-" `isPrefixOf`))
+               $ args
   case stripped of
     path:_ -> LC.run path (eval config)
     _ -> fail "Usage: combinator-gmachine <filename> [--debug][--show-source]"
