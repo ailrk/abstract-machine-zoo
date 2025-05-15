@@ -56,10 +56,10 @@ executable secd
   other-modules:
     Machine
 
-executable combinator-gmachine
+executable combinator-graph-reduction
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    CombinatorGMachine
+  hs-source-dirs:    CombinatorGraphReduction
   other-modules:
     Machine
     Combinator

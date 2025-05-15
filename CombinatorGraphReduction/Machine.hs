@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE LambdaCase #-}
 module Machine where
 
 import Combinator (Combinator(..), Comb(..))
@@ -34,8 +35,7 @@ data Graph
 
 dump :: GRef -> IO String
 dump ref = do
-  g <- gread ref
-  case g of
+  gread ref >>= \case
     Comb c -> pure $ show c
     IntLit n -> pure $ show n
     Action _ -> pure "{IO}"
@@ -43,6 +43,19 @@ dump ref = do
       s1 <- dump r1
       s2 <- dump r2
       pure $ "(" ++ s1 ++ " @ " ++ s2 ++ ")"
+
+
+-- count number of nodes
+count :: GRef -> IO Int
+count ref = do
+  gread ref >>= \case
+    Comb _ -> pure 1
+    IntLit _ -> pure 1
+    Action _ -> pure 1
+    r1 :@ r2 -> do
+      l <- count r1
+      r <- count r2
+      pure (1 + l + r)
 
 
 newtype Spine = Spine [GRef]
