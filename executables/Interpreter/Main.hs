@@ -10,6 +10,8 @@ import Data.Functor (void)
 
 data Config = Config
   { showSource :: Bool
+  , useEvalApply :: Bool
+  , usePushEnter :: Bool
   }
 
 
@@ -29,9 +31,11 @@ main = do
   let config =
         Config
           ("--show-source" `elem` args)
+          ("--use-eval-apply" `elem` args)
+          ("--use-push-enter" `elem` args)
   let stripped = filter (not . ("+" `isPrefixOf`))
                . filter (not . ("-" `isPrefixOf`))
                $ args
   case stripped of
     path:_ -> LC.run path (eval config)
-    _ -> fail "Usage: combinator-gmachine <filename> [--debug][--show-source]"
+    _ -> fail "Usage: interpreter <filename> [--debug][--show-source][--use-eval-apply][--use-push-enter]"
