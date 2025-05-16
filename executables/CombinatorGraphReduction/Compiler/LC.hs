@@ -75,6 +75,13 @@ desugar expr =
         & foldr (\e es -> Var "CONS" `App` e `App` es) (Var "NIL")
 
 
+desugarStmt :: LC.Stmt -> (Core -> Core)
+desugarStmt stmt =
+  case stmt of
+    LC.LetBind x action -> \k -> (Var "BIND" `App` desugar action) `App` (Abs x k)
+    LC.Action action -> \k -> (Var "BIND" `App` desugar action) `App` (Abs "_" k)
+
+
 -- To super combinators
 rewrite :: Core -> Core
 rewrite core =
@@ -99,13 +106,6 @@ opt core =
             _ -> opt core
   where
     optimized = rewrite core
-
-
-desugarStmt :: LC.Stmt -> (Core -> Core)
-desugarStmt stmt =
-  case stmt of
-    LC.LetBind x action -> \k -> (Var "BIND" `App` desugar action) `App` (Abs x k)
-    LC.Action action -> \k -> (Var "BIND" `App` desugar action) `App` (Abs "_" k)
 
 
 operator :: OP.OP -> Combinator
