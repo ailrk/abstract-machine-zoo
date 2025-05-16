@@ -26,6 +26,7 @@ gwrite (GRef ref) g  = writeIORef ref g
 
 infix 5 :@
 
+
 data Graph
   = GRef :@ GRef
   | Comb Combinator

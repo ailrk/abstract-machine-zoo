@@ -32,66 +32,82 @@ common shared-settings
 
 common shared-executable-settings
   build-depends:
-    language
+    syntax
 
-library language
+library syntax
   import:            shared-settings
-  hs-source-dirs:    Language
+  hs-source-dirs:    syntax
   exposed-modules:
     LC
     IMP
     OP
 
+executable interpreter
+  import:            shared-settings, shared-executable-settings
+  main-is:           Main.hs
+  hs-source-dirs:    executables/Interpreter
+  other-modules:
+    Desugar.LC
+    EvalApply.LC
+    PushEnter.LC
+
 executable cek
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    CEK
+  hs-source-dirs:    executables/CEK
   other-modules:
     Machine
 
 executable secd
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    SECD
+  hs-source-dirs:    executables/SECD
   other-modules:
     Machine
 
 executable combinator-graph-reduction
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    CombinatorGraphReduction
+  hs-source-dirs:    executables/CombinatorGraphReduction
   other-modules:
     Machine
     Combinator
     Compiler.LC
 
+executable combinator-gmachine
+  import:            shared-settings, shared-executable-settings
+  main-is:           Main.hs
+  hs-source-dirs:    executables/CombinatorGMachine
+  other-modules:
+    Machine
+    Combinator
+    Compiler.LC
 
 executable krivine
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    Krivine
+  hs-source-dirs:    executables/Krivine
   other-modules:
     Machine
-
 
 executable turing-machine
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    TuringMachine
+  hs-source-dirs:    executables/TuringMachine
   other-modules:
     Machine
 
 executable register-machine
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    RegisterMachine
+  hs-source-dirs:    executables/RegisterMachine
   other-modules:
     Machine
 
 executable stack-machine
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    StackMachine
+  hs-source-dirs:    executables/StackMachine
   other-modules:
     Machine
     Compiler.IMP
@@ -99,13 +115,13 @@ executable stack-machine
 executable TAC
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    TAC
+  hs-source-dirs:    executables/TAC
   other-modules:
     Machine
 
 executable STG
   import:            shared-settings, shared-executable-settings
   main-is:           Main.hs
-  hs-source-dirs:    STG
+  hs-source-dirs:    executables/STG
   other-modules:
     Machine

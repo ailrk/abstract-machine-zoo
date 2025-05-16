@@ -31,7 +31,7 @@ instance Monoid Program where
 
 
 data Instr
-  = PUSH Int
+  = PUSH {-#UNPACK #-} !Int
   | ADD
   | SUB
   | MUL
@@ -43,11 +43,11 @@ data Instr
   | NOT
   | EQV
   | NEQ
-  | STORE Id
-  | LOAD Id
-  | JUMP Int -- relative jump
-  | JZ Int   -- relative jump
-  | CALL Id
+  | STORE {-# UNPACK #-} !Id
+  | LOAD {-# UNPACK #-} !Id
+  | JUMP {-# UNPACK #-} !Int -- relative jump
+  | JZ {-# UNPACK #-} !Int   -- relative jump
+  | CALL {-# UNPACK #-} !Id
   | RETURN
   | READ
   | PRINT
@@ -57,6 +57,7 @@ data Instr
 
 replace :: Eq k => (k, v) -> [(k, v)] -> [(k, v)]
 replace (k, v) xs = (k, v):filter ((/= k) . fst) xs
+
 
 exec :: [Label] -> Instr -> StackM
 exec labels instr =
