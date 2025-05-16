@@ -1,0 +1,17 @@
+## Reference
+- [implementation of functional programming language](https://pub-5bd6e5d35f874c0190b1ee3a052879ef.r2.dev/the-implementation-of%3Dfunctional-programming-language-spj.pdf)
+- [Writing CEK-style interpreters (or semantics) in Haskell - Matt Might](https://matt.might.net/articles/cek-machines/)
+- [Making a fast curry: push/enter vs. eval/apply
+for higher-order languages](https://www.cs.tufts.edu/comp/150FP/archive/simon-peyton-jones/eval-apply-jfp.pdf)
+- [lambda-ski - thma](https://github.com/thma/lambda-ski)
+- [The G-machine In Detail, or How Lazy Evaluation Works Amélia](https://amelia.how/posts/the-gmachine-in-detail.html)
+- [SCIP - Harold Abelson & Gerald Sussman](https://web.mit.edu/6.001/6.037/sicp.pdf)
+- [A Rational Deconstruction of Landin’s SECD Machine - Olivier Danvy](https://www.brics.dk/RS/03/33/BRICS-RS-03-33.pdf)
+- [SKI Golf - Ben Lynn](https://crypto.stanford.edu/~blynn/compiler/golf.html)
+- [A Combinatory Compiler](https://crypto.stanford.edu/~blynn/lambda/sk.html)
+- [MicroHs: A Small Haskell Compiler - Lennart Augustsson](https://docs.google.com/presentation/d/1WsSiSwypNVTm0oZ3spRYF8gA59wyteOsIkPRjCUAZec/edit#slide=id.g28fae13d938_0_5)
+- [Compiling with Continuation -  Andrew W. Appel](https://www.amazon.com/gp/product/052103311X?ie=UTF8&tag=mmamzn06-20&linkCode=as2&camp=1789&creative=390957&creativeASIN=052103311X)
+- [Essentials of Programming - LanguagesDaniel P. Friedman & Mitchell Wand](https://dreameer.github.io/book/EssProgLan.pdf)
+- [The Lambda Calculus, Its Syntax and Semantics](https://api.pageplace.de/preview/DT0400.9780080933757_A23543814/preview-9780080933757_A23543814.pdf)
+- [Kiselyov Combinator Translation](https://crypto.stanford.edu/~blynn/lambda/kiselyov.html)
+- [A Calculus for Assignments in Higher-Order Language](https://legacy.cs.indiana.edu/ftp/techreports/TR202.pdf)
